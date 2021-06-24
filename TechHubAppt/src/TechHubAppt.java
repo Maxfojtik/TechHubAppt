@@ -67,9 +67,14 @@ public class TechHubAppt
 				JSONObject apptObj = jsonArray.getJSONObject(i);
 				String name = apptObj.getString("name");
 				String email = null;
+				String status = null;
 				if(apptObj.has("email"))
 				{
 					email = apptObj.getString("email");
+				}
+				if(apptObj.has("status"))
+				{
+					status = apptObj.getString("status");
 				}
 				String note = null;
 				if(apptObj.has("note"))
@@ -78,7 +83,7 @@ public class TechHubAppt
 				}
 	//			DateFormat df = new 
 				Date date = df.parse(apptObj.getString("date"));
-				Appt tempAppt = new Appt(name, email, note, date);
+				Appt tempAppt = new Appt(name, email, note, date, status);
 				tempList.add(tempAppt);
 			}
 		}
@@ -119,6 +124,10 @@ public class TechHubAppt
 			{
 				apptObj.put("note", thisAppt.note);
 			}
+			if(thisAppt.status!=null)
+			{
+				apptObj.put("status", thisAppt.note);
+			}
 			apptObj.put("date", df.format(thisAppt.date));
 			output.put(apptObj);
 		}
@@ -145,6 +154,10 @@ public class TechHubAppt
 			if(thisAppt.note!=null)
 			{
 				apptObj.put("note", thisAppt.note);
+			}
+			if(thisAppt.status!=null)
+			{
+				apptObj.put("status", thisAppt.status);
 			}
 			apptObj.put("date", df.format(thisAppt.date));
 			output.put(apptObj);
@@ -273,13 +286,15 @@ public class TechHubAppt
 		String name;
 		String email;
 		String note;
+		String status;
 		Date date;
-		public Appt(String name, String email, String note, Date date)
+		public Appt(String name, String email, String note, Date date, String status)
 		{
 			this.name = name;
 			this.email = email;
 			this.note = note;
 			this.date = date;
+			this.status = status;
 		}
 	}
 }

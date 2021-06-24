@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.Locale;
 
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -53,9 +54,10 @@ public class Frame
 	static LinkedList<JTextArea> nameComps = new LinkedList<JTextArea>();
 	static LinkedList<JTextArea> emailComps = new LinkedList<JTextArea>();
 	static LinkedList<JTextArea> noteComps = new LinkedList<JTextArea>();
+	static LinkedList<JComboBox<String>> dropComps = new LinkedList<JComboBox<String>>();
 	static LinkedList<Integer> unsavedAppts = new LinkedList<>();
 	static long lastUnsaved = 0;
-	static void save(Date day)
+	static void save(Date day, String combo)
 	{
 		for(int i = 0; i < unsavedAppts.size(); i++) 
 		{
@@ -70,11 +72,22 @@ public class Frame
 			{
 				note = null;
 			}
+			String status = (String) dropComps.get(unsavedAppts.get(i)).getSelectedItem();
+			if(combo!=null)
+			{
+				status = combo;
+			}
+			if(status.equals(""))
+			{
+				status = null;
+			}
+//			System.out.println("status: "+status);
 			Date date = indexToTime(unsavedAppts.get(i), day);
 			if(!name.trim().equals(""))
 			{
 				try {
-					TechHubAppt.saveAppt(new TechHubAppt.Appt(name, email, note, date));
+					TechHubAppt.saveAppt(new TechHubAppt.Appt(name, email, note, date, status));
+					dropComps.get(unsavedAppts.get(i)).setEnabled(true);
 				} catch (JSONException | IOException | ParseException e) {
 					e.printStackTrace();
 				}
@@ -89,6 +102,8 @@ public class Frame
 				nameComps.get(unsavedAppts.get(i)).setText("");
 				noteComps.get(unsavedAppts.get(i)).setText("");
 				emailComps.get(unsavedAppts.get(i)).setText("");
+				dropComps.get(unsavedAppts.get(i)).setSelectedIndex(0);
+				dropComps.get(unsavedAppts.get(i)).setEnabled(false);
 			}
 			nameComps.get(unsavedAppts.get(i)).setEnabled(false);
 			noteComps.get(unsavedAppts.get(i)).setEnabled(false);
@@ -105,9 +120,11 @@ public class Frame
 			JTextArea nameComp = Frame.nameComps.get(i);
 			JTextArea noteComp = Frame.noteComps.get(i);
 			JTextArea emailComp = Frame.emailComps.get(i);
+			JComboBox<String> dropComp = Frame.dropComps.get(i);
 			nameComp.setBackground(Color.white);
 			noteComp.setBackground(Color.white);
 			emailComp.setBackground(Color.white);
+			dropComp.setBackground(Color.white);
 		}
 		if(datePicker.getDate().equals(LocalDate.now()))
 		{
@@ -117,9 +134,11 @@ public class Frame
 				JTextArea nameComp = Frame.nameComps.get(index);
 				JTextArea noteComp = Frame.noteComps.get(index);
 				JTextArea emailComp = Frame.emailComps.get(index);
+				JComboBox<String> dropComp = Frame.dropComps.get(index);
 				nameComp.setBackground(Color.lightGray);
 				noteComp.setBackground(Color.lightGray);
 				emailComp.setBackground(Color.lightGray);
+				dropComp.setBackground(Color.lightGray);
 			}
 		}
 		long delta = System.currentTimeMillis()-lastUnsaved;
@@ -128,7 +147,7 @@ public class Frame
 			f.setTitle("Tech Hub Appointments (unsaved changes) Auto Saving in "+(60-delta/1000)+" seconds");
 			if(delta>60000)
 			{
-				save(localDateToDate(datePicker.getDate()));
+				save(localDateToDate(datePicker.getDate()), null);
 			}
 		}
 	}
@@ -147,7 +166,7 @@ public class Frame
 			    options[0]);
 			if(n==0)
 			{
-				save(localDateToDate(datePicker.getDate()));
+				save(localDateToDate(datePicker.getDate()), null);
 			}
 			else
 			{
@@ -159,7 +178,7 @@ public class Frame
 	static void init()
 	{
 		f = new JFrame("Tech Hub Appointments");
-		f.setBounds(10,10,800,450);
+		f.setBounds(10,10,910,450);
 		f.setResizable(false);
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		f.setLayout(null);
@@ -186,7 +205,7 @@ public class Frame
 		noteLabel.setBounds(430, yStart-deltaY, 250, deltaY);
 		f.add(noteLabel);
 		nextDay = new JButton("Next Day");
-		int frameWidth = 785;
+		int frameWidth = 895;
 		nextDay.setBounds(frameWidth-155, 5, 150, 25);
 		nextDay.addActionListener(new NextDayListener());
 		f.add(nextDay);
@@ -251,6 +270,17 @@ public class Frame
 			noteTA.addMouseListener(new ClickMouseListener());
 			f.add(noteTA);
 			noteComps.add(noteTA);
+			
+			
+			JComboBox<String> comboBox = new JComboBox<String>(new String[]{"", "Completed", "No show"}) ;
+			comboBox.setSelectedIndex(0);
+			comboBox.setBounds(790, line, 100, deltaY);
+			//noteTA.addKeyListener(new ChangeListener(noteComps.size()));
+			//comboBox.setDisabledTextColor(Color.BLUE);
+			comboBox.addActionListener(new ComboListener(dropComps.size()));
+//			comboBox.addMouseListener(new ClickMouseListener());
+			f.add(comboBox);
+			dropComps.add(comboBox);
 		}
 		showDay(TechHubAppt.getAppts(), datePicker.getDate());
 		f.setVisible(true);
@@ -285,9 +315,11 @@ public class Frame
 			nameComps.get(i).setText("");
 			emailComps.get(i).setText("");
 			noteComps.get(i).setText("");
+			dropComps.get(i).setSelectedIndex(0);
 			nameComps.get(i).setEnabled(false);
 			emailComps.get(i).setEnabled(false);
 			noteComps.get(i).setEnabled(false);
+			dropComps.get(i).setEnabled(false);
 		}
 		if(dayDate!=null && appts!=null)
 		{
@@ -312,6 +344,15 @@ public class Frame
 				nameComps.get(index).setText(thisAppt.name);
 				emailComps.get(index).setText(thisAppt.email);
 				noteComps.get(index).setText(thisAppt.note);
+				dropComps.get(index).setEnabled(true);
+				if(thisAppt.status!=null)
+				{
+					dropComps.get(index).setSelectedItem(thisAppt.status);
+				}
+				else
+				{
+					dropComps.get(index).setSelectedIndex(0);
+				}
 			}
 		}
 	}
@@ -339,7 +380,7 @@ public class Frame
 		while(true)
 		{
 	        old = old.plusDays(1);
-	        if (old.getDayOfWeek() != DayOfWeek.SATURDAY && old.getDayOfWeek() != DayOfWeek.SUNDAY) 
+	        if (old.getDayOfWeek() != DayOfWeek.SUNDAY) 
 	        {
 	        	break;
 	        }
@@ -351,19 +392,22 @@ public class Frame
 		while(true)
 		{
 	        old = old.minusDays(1);
-	        if (old.getDayOfWeek() != DayOfWeek.SATURDAY && old.getDayOfWeek() != DayOfWeek.SUNDAY) 
+	        if (old.getDayOfWeek() != DayOfWeek.SUNDAY) 
 	        {
 	        	break;
 	        }
 		}
         return old;
 	}
+	static boolean ignoreCombos = false;
 	static class NextDayListener implements ActionListener
 	{
 		@Override
 		public void actionPerformed(ActionEvent e) 
 		{
+			ignoreCombos = true;
 			showNextDay();
+			ignoreCombos = false;
 		}
 	}
 	static class PrevDayListener implements ActionListener
@@ -371,7 +415,9 @@ public class Frame
 		@Override
 		public void actionPerformed(ActionEvent e) 
 		{
+			ignoreCombos = true;
 			showPrevDay();
+			ignoreCombos = false;
 		}
 	}
 	static class ClickMouseListener implements java.awt.event.MouseListener
@@ -403,6 +449,26 @@ public class Frame
 		}
 		
 	}
+	static class ComboListener implements ActionListener
+	{
+		int index;
+		public ComboListener(int index)
+		{
+			this.index = index;
+		}
+		@Override
+		public void actionPerformed(ActionEvent event) 
+		{
+			if((event.getModifiers()==16 || event.getModifiers()==4) && !ignoreCombos)
+			{
+				JComboBox<String> combo = (JComboBox<String>) event.getSource();
+		        String selected = (String) combo.getSelectedItem();
+				System.out.println("Saved as: "+selected);
+				unsavedChanges(index);
+				save(localDateToDate(datePicker.getDate()), selected);
+			}
+		}
+	}
 	static Date localDateToDate(LocalDate d)
 	{
 		Calendar cal = Calendar.getInstance();
@@ -424,7 +490,7 @@ public class Frame
 		{
 			if(e.getKeyChar()=='\n')
 			{
-				save(localDateToDate(datePicker.getDate()));
+				save(localDateToDate(datePicker.getDate()), null);
 			}
 			else if(e.getKeyChar()=='\t')
 			{
